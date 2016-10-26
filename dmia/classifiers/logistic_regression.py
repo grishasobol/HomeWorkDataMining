@@ -1,5 +1,7 @@
+#jopa jopa
 import numpy as np
 from scipy import sparse
+from sklearn.metrics import hamming_loss as hl
 
 
 class LogisticRegression:
@@ -46,7 +48,13 @@ class LogisticRegression:
             # Hint: Use np.random.choice to generate indices. Sampling with         #
             # replacement is faster than sampling without replacement.              #
             #########################################################################
-
+            
+            X_batch = None
+            y_batch = None
+            
+            idx = np.random.choice(num_train, batch_size)
+            X_batch = X[idx:idx + batch_size]
+            y_batch = y[idx:idx + batch_size]
 
             #########################################################################
             #                       END OF YOUR CODE                                #
@@ -60,7 +68,8 @@ class LogisticRegression:
             # TODO:                                                                 #
             # Update the weights using the gradient and the learning rate.          #
             #########################################################################
-
+            
+            self.w -= gradW * learning_rate 
 
             #########################################################################
             #                       END OF YOUR CODE                                #
@@ -91,8 +100,15 @@ class LogisticRegression:
         # Implement this method. Store the probabilities of classes in y_proba.   #
         # Hint: It might be helpful to use np.vstack and np.sum                   #
         ###########################################################################
-
-
+        y_proba = np.ndarray((X.shape[0],2))
+        i = 0
+        for x in X:
+            #print self.w.shape
+            #print x.shape
+            arg = -1 * self.w * x.transpose()
+            y_proba[i][0] = 1. / (1. + np.exp(arg))
+            y_proba[i][1] = 1. - y_proba[i][0]
+            i += 1
 
         ###########################################################################
         #                           END OF YOUR CODE                              #
@@ -116,8 +132,16 @@ class LogisticRegression:
         # TODO:                                                                   #
         # Implement this method. Store the predicted labels in y_pred.            #
         ###########################################################################
-        y_proba = self.predict_proba(X, append_bias=True)
-        y_pred = ...
+        y_proba = self.predict_proba(X, append_bias=False)
+        y_pred = np.ndarray(y_proba.shape[0])
+        i = 0
+        for y in y_proba:
+            if y[0] >= y[1]:
+                y_pred[i] = 1
+            else:
+                y_pred[i] = 0
+            i += 1
+                
 
         ###########################################################################
         #                           END OF YOUR CODE                              #
@@ -138,7 +162,14 @@ class LogisticRegression:
         loss = 0
         # Compute loss and gradient. Your code should not contain python loops.
 
-
+        pred = self.predict(X_batch)
+        print pred
+        print y_batch
+        loss = hl(y_batch , pred)
+        dw = X_batch.transpose() * (pred - y_batch).transpose()
+        dw /= X_batch.shape[0]
+        
+        
         # Right now the loss is a sum over all training examples, but we want it
         # to be an average instead so we divide by num_train.
         # Note that the same thing must be done with gradient.
@@ -146,7 +177,9 @@ class LogisticRegression:
 
         # Add regularization to the loss and gradient.
         # Note that you have to exclude bias term in regularization.
-
+        
+        loss *= reg
+        dw *= reg
 
         return loss, dw
 
