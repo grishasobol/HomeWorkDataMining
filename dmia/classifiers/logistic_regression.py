@@ -1,8 +1,14 @@
-#jopa jopa
 import numpy as np
 from scipy import sparse
-from sklearn.metrics import hamming_loss as hl
+from sklearn.metrics import hamming_loss
+import theano
+import theano.tensor as T
 
+x = T.dmatrix('x')
+w = T.vector('w')
+z = 1. / (1. - T.exp(-1*T.dot(w, x)))
+z1 = 1. - z
+f = theano.function([w, x], [z, z1])
 
 class LogisticRegression:
     def __init__(self):
@@ -36,6 +42,10 @@ class LogisticRegression:
 
         # Run stochastic gradient descent to optimize W
         self.loss_history = []
+        #x = T.matrix("x", dtype = 'float64')
+        #y = T.vector("y", dtype = 'float64') 
+        #loss_th, gradW_th = self.loss(x, y, reg)
+        #thfunction = theano.function( inputs=[x,y], outputs=[loss_th, gradW_th])
         for it in xrange(num_iters):
             #########################################################################
             # TODO:                                                                 #
@@ -52,9 +62,9 @@ class LogisticRegression:
             X_batch = None
             y_batch = None
             
-            idx = np.random.choice(num_train, batch_size)
-            X_batch = X[idx:idx + batch_size]
-            y_batch = y[idx:idx + batch_size]
+            idx = np.random.choice(num_train, batch_size, replace=True)
+            X_batch = X[idx,:]
+            y_batch = y[idx]
 
             #########################################################################
             #                       END OF YOUR CODE                                #
@@ -68,14 +78,13 @@ class LogisticRegression:
             # TODO:                                                                 #
             # Update the weights using the gradient and the learning rate.          #
             #########################################################################
-            
-            self.w -= gradW * learning_rate 
+            self.w -= gradW * learning_rate
 
             #########################################################################
             #                       END OF YOUR CODE                                #
             #########################################################################
 
-            if verbose and it % 100 == 0:
+            if verbose and it % 100== 0:
                 print 'iteration %d / %d: loss %f' % (it, num_iters, loss)
 
         return self
@@ -93,6 +102,8 @@ class LogisticRegression:
         - y_proba: Probabilities of classes for the data in X. y_pred is a 2-dimensional
           array with a shape (N, 2), and each row is a distribution of classes [prob_class_0, prob_class_1].
         """
+
+        
         if append_bias:
             X = LogisticRegression.append_biases(X)
         ###########################################################################
@@ -100,16 +111,22 @@ class LogisticRegression:
         # Implement this method. Store the probabilities of classes in y_proba.   #
         # Hint: It might be helpful to use np.vstack and np.sum                   #
         ###########################################################################
-        y_proba = np.ndarray((X.shape[0],2))
+        
+        y_proba = np.ndarray((X.shape[0], 2))
+        
+        
+       """ 
         i = 0
         for x in X:
-            #print self.w.shape
-            #print x.shape
             arg = -1 * self.w * x.transpose()
-            y_proba[i][0] = 1. / (1. + np.exp(arg))
-            y_proba[i][1] = 1. - y_proba[i][0]
+            #arg = -1 * f(self.w, x.transpose().todense())
+            y_proba[i][1] = 1. / (1. + np.exp(arg))
+            y_proba[i][0] = 1. - y_proba[i][1]
             i += 1
-
+"""
+        y_proba[:][1], y_proba[:][0] = f(self.w, x.transpose().todense())
+        #lol, jop = f(self.w, x.transpose().todense())
+        
         ###########################################################################
         #                           END OF YOUR CODE                              #
         ###########################################################################
@@ -132,17 +149,9 @@ class LogisticRegression:
         # TODO:                                                                   #
         # Implement this method. Store the predicted labels in y_pred.            #
         ###########################################################################
-        y_proba = self.predict_proba(X, append_bias=False)
-        y_pred = np.ndarray(y_proba.shape[0])
-        i = 0
-        for y in y_proba:
-            if y[0] >= y[1]:
-                y_pred[i] = 1
-            else:
-                y_pred[i] = 0
-            i += 1
+        y_proba = self.predict_proba(X, append_bias=True)  
+        y_pred = [1 if(y[1] > y[0]) else 0 for y in y_proba]
                 
-
         ###########################################################################
         #                           END OF YOUR CODE                              #
         ###########################################################################
@@ -159,28 +168,38 @@ class LogisticRegression:
         - gradient with respect to weights w; an array of same shape as w
         """
         dw = np.zeros_like(self.w)  # initialize the gradient as zero
-        loss = 0
+        loss = 0.0
         # Compute loss and gradient. Your code should not contain python loops.
-
-        pred = self.predict(X_batch)
-        print pred
-        print y_batch
-        loss = hl(y_batch , pred)
-        dw = X_batch.transpose() * (pred - y_batch).transpose()
-        dw /= X_batch.shape[0]
         
+        y_proba = self.predict_proba(X_batch, append_bias=False)
+        num_train = y_proba.shape[0]
+        
+        for i in xrange(num_train):
+            loss += -1 * (y_batch[i] * np.log(y_proba[i][1]) + (1. - y_batch[i]) * np.log(y_proba[i][0]))
+        
+        for i in range(num_train):
+            dw += np.sum(X_batch[i] * (y_proba[i][1] - y_batch[i]))
+        
+        
+          
+        #pred = self.predict(X_batch)
+        #loss += hamming_loss(y_batch, pred)
+        
+        #dw += X_batch.transpose() * (pred - y_batch).transpose() 
         
         # Right now the loss is a sum over all training examples, but we want it
         # to be an average instead so we divide by num_train.
         # Note that the same thing must be done with gradient.
-
-
+        
+        loss /= num_train
+        dw /= num_train
+        
         # Add regularization to the loss and gradient.
         # Note that you have to exclude bias term in regularization.
-        
-        loss *= reg
-        dw *= reg
 
+        loss += 0.5 * reg * np.sum(self.w * self.w)
+        dw += reg * self.w
+       
         return loss, dw
 
     @staticmethod
