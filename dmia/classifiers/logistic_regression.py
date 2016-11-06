@@ -4,12 +4,13 @@ from sklearn.metrics import hamming_loss
 import theano
 import theano.tensor as T
 
+"""
 x = T.dmatrix('x')
 w = T.vector('w')
 z = 1. / (1. - T.exp(-1*T.dot(w, x)))
 z1 = 1. - z
 f = theano.function([w, x], [z, z1])
-
+"""
 class LogisticRegression:
     def __init__(self):
         self.w = None
@@ -112,25 +113,19 @@ class LogisticRegression:
         # Hint: It might be helpful to use np.vstack and np.sum                   #
         ###########################################################################
         
-        y_proba = np.ndarray((X.shape[0], 2))
+        y_proba = np.ndarray((2, X.shape[0]))
         
         
-       """ 
-        i = 0
-        for x in X:
-            arg = -1 * self.w * x.transpose()
-            #arg = -1 * f(self.w, x.transpose().todense())
-            y_proba[i][1] = 1. / (1. + np.exp(arg))
-            y_proba[i][0] = 1. - y_proba[i][1]
-            i += 1
-"""
-        y_proba[:][1], y_proba[:][0] = f(self.w, x.transpose().todense())
+        arg = -1 * self.w * X.transpose()
+        y_proba[1] = 1. / (1. + np.exp(arg))
+        y_proba[0] = 1. - y_proba[1]
+        #y_proba[:][1], y_proba[:][0] = f(self.w, X.transpose().todense())
         #lol, jop = f(self.w, x.transpose().todense())
         
         ###########################################################################
         #                           END OF YOUR CODE                              #
         ###########################################################################
-        return y_proba
+        return y_proba.transpose()
 
     def predict(self, X):
         """
@@ -167,19 +162,25 @@ class LogisticRegression:
         - loss as single float
         - gradient with respect to weights w; an array of same shape as w
         """
-        dw = np.zeros_like(self.w)  # initialize the gradient as zero
+        #dw = np.zeros_like(self.w)  # initialize the gradient as zero
         loss = 0.0
         # Compute loss and gradient. Your code should not contain python loops.
         
-        y_proba = self.predict_proba(X_batch, append_bias=False)
-        num_train = y_proba.shape[0]
+        y_proba = self.predict_proba(X_batch, append_bias=False).transpose()
+        num_train = y_proba.shape[1]
         
+        #print X_batch.shape, y_proba.shape, y_batch.shape, self.w.shape 
+        
+        loss = -1 * np.sum( y_batch * np.log(y_proba[1]) + (1. - y_batch) * np.log(y_proba[0]))
+        dw = (y_proba[1] - y_batch) * X_batch
+        #print dw, ( (y_proba[1] - y_batch) * X_batch).shape
+        """
         for i in xrange(num_train):
             loss += -1 * (y_batch[i] * np.log(y_proba[i][1]) + (1. - y_batch[i]) * np.log(y_proba[i][0]))
         
         for i in range(num_train):
             dw += np.sum(X_batch[i] * (y_proba[i][1] - y_batch[i]))
-        
+        """
         
           
         #pred = self.predict(X_batch)
