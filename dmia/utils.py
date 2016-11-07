@@ -2,7 +2,7 @@ import numpy as np
 import pylab as plt
 from matplotlib.colors import ListedColormap
 
-cmap_light = ListedColormap(['#FFAAAA', '#AAFFAA', '#AAAAFF'])
+cmap_light = ListedColormap(['#FFAAAA',  '#AAAAFF'])#'#AAFFAA',
 cmap_bold = ListedColormap(['#FF0000', '#00FF00', '#0000FF'])
 
 
