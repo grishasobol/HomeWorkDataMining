@@ -7,7 +7,6 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.base import ClassifierMixin, BaseEstimator
 from scipy.optimize import minimize
 
-
 class BinaryBoostingClassifier(BaseEstimator, ClassifierMixin):
     def __init__(self, n_estimators=100, lr=0.1, max_depth=3):
         self.base_regressor = DecisionTreeRegressor(criterion='friedman_mse',
@@ -32,7 +31,7 @@ class BinaryBoostingClassifier(BaseEstimator, ClassifierMixin):
     def fit(self, X, original_y):
         # Храните базовые алгоритмы тут
         self.estimators_ = []
-        self.param = []
+        self.param = []huhiu
         
         if self.pred is None:
             self.pred = np.zeros(shape = X.shape[0])
@@ -54,7 +53,7 @@ class BinaryBoostingClassifier(BaseEstimator, ClassifierMixin):
             self.param.append(a)
             #print np.sum((self.pred - original_y)**2), a
 
-        #self.out_ = self._outliers(grad)
+        self.out_ = self._outliers(np.copy(grad))
         #self.feature_importances_ = self._calc_feature_imps()
 
         return self
@@ -83,7 +82,14 @@ class BinaryBoostingClassifier(BaseEstimator, ClassifierMixin):
     def _outliers(self, grad):
         # Топ-10 объектов с большим отступом
         ### YOUR CODE ###
-        _outliers = None
+        _outliers = []
+        for i in range(10):
+            k = np.argmax(grad)
+            l = np.argmin(grad)
+            _outliers.append(k)
+            _outliers.append(l
+            grad[k] = 0
+            grad[l] = 0
 
         return _outliers
 
