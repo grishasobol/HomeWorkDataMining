@@ -31,7 +31,7 @@ class BinaryBoostingClassifier(BaseEstimator, ClassifierMixin):
     def fit(self, X, original_y):
         # Храните базовые алгоритмы тут
         self.estimators_ = []
-        self.param = []huhiu
+        self.param = []
         
         if self.pred is None:
             self.pred = np.zeros(shape = X.shape[0])
@@ -41,8 +41,8 @@ class BinaryBoostingClassifier(BaseEstimator, ClassifierMixin):
             grad = self.loss_grad(original_y, self.pre_pred)
             # Настройте базовый алгоритм на градиент, это классификация или регрессия?
             ### YOUR CODE ###
-            regressor = DecisionTreeRegressor(max_depth=3)
-            regressor.fit(X,self.lr * grad) 
+            regressor = deepcopy(self.base_regressor)
+            regressor.fit(X, grad) 
             b = regressor.predict(X)
             func = lambda x: np.sum((self.pre_pred + x * b - original_y)**2)
             a = minimize(func,1.1,method='Nelder-Mead',tol=1e-6).x[0]
@@ -52,9 +52,10 @@ class BinaryBoostingClassifier(BaseEstimator, ClassifierMixin):
             self.estimators_.append(estimator)
             self.param.append(a)
             #print np.sum((self.pred - original_y)**2), a
+            print i
 
         self.out_ = self._outliers(np.copy(grad))
-        #self.feature_importances_ = self._calc_feature_imps()
+        self.feature_importances_ = self._calc_feature_imps()
 
         return self
 
@@ -87,7 +88,7 @@ class BinaryBoostingClassifier(BaseEstimator, ClassifierMixin):
             k = np.argmax(grad)
             l = np.argmin(grad)
             _outliers.append(k)
-            _outliers.append(l
+            _outliers.append(l)
             grad[k] = 0
             grad[l] = 0
 
@@ -99,6 +100,11 @@ class BinaryBoostingClassifier(BaseEstimator, ClassifierMixin):
         ### YOUR CODE ###
         #for est in self.estimmators_:
             
-        
+        for x in self.estimators_:
+            print x.feature_importances_
+            if f_imps is None:
+                f_imps = x.feature_importances_
+            else:
+                f_imps += x.feature_importances_
         
         return f_imps/len(self.estimators_)
